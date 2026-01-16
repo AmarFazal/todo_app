@@ -6,6 +6,7 @@ import '../providers/todo_provider.dart';
 import '../providers/category_provider.dart';
 import '../models/todo_model.dart';
 import '../widgets/animated_button.dart';
+import '../utils/notification_helper.dart';
 
 class AddTodoScreen extends StatefulWidget {
   const AddTodoScreen({super.key});
@@ -61,8 +62,9 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
         return;
       }
 
+      final todoId = const Uuid().v4();
       final todo = TodoModel(
-        id: const Uuid().v4(),
+        id: todoId,
         title: _titleController.text,
         description: _descriptionController.text.isEmpty
             ? null
@@ -77,6 +79,35 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
       );
 
       await context.read<TodoProvider>().addTodo(todo);
+      
+      // Schedule notification if reminder time is set
+      if (_reminderTime != null && _dueDate != null) {
+        final now = DateTime.now();
+        var notificationDate = DateTime(
+          _dueDate!.year,
+          _dueDate!.month,
+          _dueDate!.day,
+          _reminderTime!.hour,
+          _reminderTime!.minute,
+        );
+        
+        // If the notification time has passed today, schedule for tomorrow
+        if (notificationDate.isBefore(now)) {
+          notificationDate = notificationDate.add(const Duration(days: 1));
+        }
+        
+        // Use a hash of the ID as notification ID to ensure uniqueness
+        final notificationId = todoId.hashCode.abs() % 2147483647;
+        
+        await NotificationHelper.scheduleNotification(
+          id: notificationId,
+          title: 'Task Reminder: ${_titleController.text}',
+          body: _descriptionController.text.isEmpty
+              ? 'Don\'t forget to complete this task!'
+              : _descriptionController.text,
+          scheduledDate: notificationDate,
+        );
+      }
       
       if (mounted) {
         Navigator.pop(context, true);
@@ -95,6 +126,10 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: const Text('New Task'),
       ),
       body: Form(

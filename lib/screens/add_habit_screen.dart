@@ -6,6 +6,7 @@ import '../providers/habit_provider.dart';
 import '../providers/category_provider.dart';
 import '../models/habit_model.dart';
 import '../widgets/animated_button.dart';
+import '../utils/notification_helper.dart';
 
 class AddHabitScreen extends StatefulWidget {
   const AddHabitScreen({super.key});
@@ -60,8 +61,9 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
         return;
       }
 
+      final habitId = const Uuid().v4();
       final habit = HabitModel(
-        id: const Uuid().v4(),
+        id: habitId,
         title: _titleController.text,
         description: _descriptionController.text.isEmpty
             ? null
@@ -76,6 +78,33 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
       );
 
       await context.read<HabitProvider>().addHabit(habit);
+      
+      // Schedule daily notification if reminder time is set
+      if (_reminderTime != null) {
+        final now = DateTime.now();
+        var notificationDate = DateTime(
+          now.year,
+          now.month,
+          now.day,
+          _reminderTime!.hour,
+          _reminderTime!.minute,
+        );
+        
+        // If the notification time has passed today, schedule for tomorrow
+        if (notificationDate.isBefore(now)) {
+          notificationDate = notificationDate.add(const Duration(days: 1));
+        }
+        
+        // Use a hash of the ID as notification ID to ensure uniqueness
+        final notificationId = habitId.hashCode.abs() % 2147483647;
+        
+        await NotificationHelper.scheduleNotification(
+          id: notificationId,
+          title: 'Habit Reminder: ${_titleController.text}',
+          body: 'Time to work on your habit! Keep your streak going! 🔥',
+          scheduledDate: notificationDate,
+        );
+      }
       
       if (mounted) {
         Navigator.pop(context, true);
@@ -95,6 +124,10 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: const Text('New Habit'),
       ),
       body: Form(

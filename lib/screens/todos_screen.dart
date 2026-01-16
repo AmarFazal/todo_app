@@ -63,6 +63,7 @@ class _TodosScreenState extends State<TodosScreen> with SingleTickerProviderStat
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'add_todo_fab',
         onPressed: () async {
           final result = await Navigator.push(
             context,

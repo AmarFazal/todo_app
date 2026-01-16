@@ -26,11 +26,27 @@ class NotificationHelper {
       onDidReceiveNotificationResponse: (details) {},
     );
 
-    // Request permissions
-    await _notifications
+    // Create notification channel for Android
+    final androidImplementation = _notifications
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.requestNotificationsPermission();
+            AndroidFlutterLocalNotificationsPlugin>();
+    
+    if (androidImplementation != null) {
+      await androidImplementation.createNotificationChannel(
+        const AndroidNotificationChannel(
+          'todo_habit_channel',
+          'Todo & Habit Reminders',
+          description: 'Notifications for todos and habits',
+          importance: Importance.high,
+          enableVibration: true,
+          playSound: true,
+        ),
+      );
+      
+      // Request permissions
+      await androidImplementation.requestNotificationsPermission();
+      await androidImplementation.requestExactAlarmsPermission();
+    }
   }
 
   static Future<void> scheduleNotification({

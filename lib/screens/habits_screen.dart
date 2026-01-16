@@ -88,6 +88,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
               },
             ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'add_habit_fab',
         onPressed: () async {
           final result = await Navigator.push(
             context,
